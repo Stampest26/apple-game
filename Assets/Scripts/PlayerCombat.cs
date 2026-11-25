@@ -13,11 +13,18 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] Transform muzzle;
     [SerializeField] MudProjectile mudPrefab; 
     [SerializeField] float fireCooldown = 0.4f;
-    [SerializeField] float suckReach = 2f;
-    [SerializeField] Vector2 suckBoxSize = new Vector2(3f, 1.5f);
+    [SerializeField] float suckScreenFraction = 0.75f;
 
     public Tool Current { get; private set; } = Tool.None; 
     float nextFireTime;
+    Camera cam;
+    CameraFollow cameraFollow;
+
+    void Awake()
+    {
+        cam = Camera.main;
+        cameraFollow = cam.GetComponent<CameraFollow>();
+    }
 
     void Update()
     {
@@ -42,23 +49,45 @@ public class PlayerCombat : MonoBehaviour
         suckerVisual.SetActive(Current == Tool.Sucker);
     }
 
-    void UseTool()
+    void UseTool() 
     {
-        Vector2 forward = Vector2.right * player.Facing;
+        if (Current == Tool.MudLauncher) ShootMud();
+        else if (Current == Tool.Sucker) Suck();
+    }
 
-        if (Current == Tool.MudLauncher && Time.time >= nextFireTime)
+    void ShootMud()
+    {
+        if (Time.time < nextFireTime) return;
+        nextFireTime = Time.time + fireCooldown;
+
+        Vector2 forward = Vector2.right * player.Facing;
+        MudProjectile mud = Instantiate(mudPrefab, muzzle.position, Quaternion.identity);
+        mud.Launch(forward);
+        cameraFollow.Shake(0.15f, 0.2f);
+    }
+
+    void Suck()
+    {
+        float screenWidth = cam.orthographicSize * 2f * cam.aspect;
+        float maxDistance = screenWidth * suckScreenFraction;
+
+        Worm closest = null;
+        float closestDistance = float.MaxValue;
+
+        foreach(Worm worm in FindObjectsByType<Worm>())
         {
-            nextFireTime = Time.time + fireCooldown;
-            MudProjectile mud = Instantiate(mudPrefab, muzzle.position, Quaternion.identity);
-            mud.Launch(forward);
-        }
-        else if (Current == Tool.Sucker)
-        {
-            Vector2 center = (Vector2)transform.position + forward * suckReach;
-            foreach (Collider2D hit in Physics2D.OverlapBoxAll(center, suckBoxSize, 0f))
+            float offset = worm.transform.position.x - transform.position.x;
+            if (offset * player.Facing <= 0f) continue;
+            float distance = Mathf.Abs(offset);
+            if (distance > maxDistance) continue;
+            if (distance < closestDistance)
             {
-                if (hit.TryGetComponent(out Worm worm)) worm.TrySuck(); 
+                closestDistance = distance;
+                closest = worm;
             }
         }
+
+        if (closest != null) closest.TrySuck(suckerVisual.transform);
+
     }
 }

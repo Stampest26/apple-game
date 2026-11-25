@@ -1,12 +1,12 @@
 # Apple Game
 
-## The worms attack!
+**The worms attack!**
 
 **!! Work in Progress !!**
 
 This is a **sidescrolling platformer** where you play as an apple named Appy, platforming to save the fruit world from the evil worms!
 
-It is a prototype for a larger game, currently only containing the tutorial. I have used **Unity** and **VSCodium** to create this platformer. Almost all of the code is written using **C#**
+It is a prototype for a larger game, currently only containing the tutorial. I have used **Unity** and **VSCodium** to create this platformer. Almost all of the code is written using **C#**. All of the sprites I made are drawn using **Aseprite**, however most of the sprites currently consist of basic shapes.
 
 I made this project because I simply thought it was a pretty silly idea. Platformers are one of my favourite genres (tied with Psychological Horror) and I thought that a game where you play as a fruit attacked by worms could be fun. 
 

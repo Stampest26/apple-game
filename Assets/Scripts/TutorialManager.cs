@@ -14,6 +14,26 @@ public class TutorialManager : MonoBehaviour
     [SerializeField] Transform gapEnd;
     [SerializeField] DialogueUI dialogue;
     [SerializeField] PlayerController player;
+    [SerializeField] Transform ledgeTrigger;
+    [SerializeField] Transform ledgeCamPoint;
+    [SerializeField] Transform ledgeCheckpoint;
+    [SerializeField] Worm ledgeWorm; 
+    [SerializeField] Nectar nectar;
+    [SerializeField] float nectarCloseDistance = 5f;
+
+    bool playerDied;
+
+    void Awake() => worm.PlayerKilled += () => playerDied = true;
+
+    void ResetFight()
+    {
+        cameraFollow.SetTarget(player.transform);
+        cameraFollow.ResetZoom();
+        dialogue.Hide();
+        worm.Frozen = false;
+        worm.CanAct = false;
+        player.InputLocked = false;
+    }
 
     IEnumerator Start()
     {
@@ -47,38 +67,78 @@ public class TutorialManager : MonoBehaviour
         //----------------------------------------------------------------------------------------------------------------------------------------------
 
         // Tutorial for fighting!
-        yield return new WaitUntil(() => player.transform.position.x > wormTrigger.position.x);
-        player.InputLocked = true; 
-        yield return dialogue.Say(Speaker.Both, "A WORM!");
-        // This part makes the camera move to the middle of the scene, so the worm has more space to crawl at you!
-        cameraFollow.SetTarget(wormCamPoint);
-        cameraFollow.SetZoom(6f);
-        yield return dialogue.Say(Speaker.Sherry, "Careful, Appy! These beings thirst for fruit flesh!");
-        yield return dialogue.Say(Speaker.Charlotte, "Quick, shoot it with the mud launcher! Take it out with J and use it with the Left Click!");
-        // Makes the worm be able to run at you
-        worm.CanAct = true; 
-        worm.Alert();
-        player.InputLocked = false;
-        // Waits until the worm is covered in mud, and then lets it run at the player for a bit (so they can see the speed change)
-        yield return new WaitUntil(() => worm.State == WormState.InMud);
-        yield return new WaitForSeconds(0.5f);
-        // Then stops for more dialogue 
-        worm.Frozen = true;
+        bool wormDefeated = false;
+        while (!wormDefeated) 
+        {
+            playerDied = false;
+            yield return new WaitUntil(() => player.transform.position.x > wormTrigger.position.x);
+            player.InputLocked = true;
+            yield return dialogue.Say(Speaker.Both, "A WORM!");
+            cameraFollow.SetTarget(wormCamPoint);
+            cameraFollow.SetZoom(6f);
+            yield return dialogue.Say(Speaker.Sherry, "Careful, Appy! These beings thirst for fruit flesh!");
+            yield return dialogue.Say(Speaker.Charlotte, "Quick, shoot it with the mud launcher! Take it out with J and use it with the Left Click!");
+            worm.CanAct = true;
+            worm.Alert();
+            player.InputLocked = false;
+            yield return new WaitUntil(() => worm.State == WormState.InMud || playerDied);
+            if (playerDied) { ResetFight(); continue; }
+            yield return new WaitForSeconds(0.5f);
+            if (playerDied) { ResetFight(); continue; }
+            worm.Frozen = true;
+            player.InputLocked = true;
+            yield return dialogue.Say(Speaker.Charlotte, "Appy, the worm crawls faster while it's in the mud!");
+            yield return dialogue.Say(Speaker.Sherry, "Quick, take out the sucker with K and suck it up with the Left Click!");
+            worm.Frozen = false;
+            player.InputLocked = false; 
+            yield return new WaitUntil(() => worm.State == WormState.Sucked || playerDied);
+            if (playerDied) { ResetFight(); continue; }
+            wormDefeated = true;            
+        }
+
+        yield return new WaitUntil(() => worm.Collected);
         player.InputLocked = true;
-        yield return dialogue.Say(Speaker.Sherry, "Appy, the worm runs faster while it's in the mud!");
-        yield return dialogue.Say(Speaker.Charlotte, "Quickly, take out the sucker with K and suck it up with the Left Click!");
-        // Worm may be too fast here, may edit later
-        worm.Frozen = false;
-        player.InputLocked = false; 
-        yield return new WaitUntil(() => worm.State == WormState.Sucked);
-        player.InputLocked = true;
-        yield return dialogue.Say(Speaker.Sherry, "Nice job, you got rid of the pesky worm!");
+        yield return dialogue.Say(Speaker.Sherry, "Nice job, you got rid of that pesky worm!");
         cameraFollow.SetTarget(player.transform);
         cameraFollow.ResetZoom();
+        yield return dialogue.Say(Speaker.Sherry, "Did you see that? You got a coin!");
+        yield return dialogue.Say(Speaker.Sherry, "You get coins each time you defeat an enemy.");
+        yield return dialogue.Say(Speaker.Charlotte, "We have no idea what they do, though.");
+        yield return dialogue.Say(Speaker.Charlotte, "You're smart, Appy! I'm sure you'll find a use for them!");
+        yield return dialogue.Say(Speaker.Sherry, "Onwards!");
         dialogue.Hide();
         player.InputLocked = false; 
 
-        // Worm fighting and retrieving nectar is next. Then Appy will arrive at the outpost and meet all of the other fruits.
-        
+        //----------------------------------------------------------------------------------------------------------------------------------------------
+
+        // Tutorial for nectar!
+        yield return new WaitUntil(() => player.transform.position.x > ledgeTrigger.position.x);
+        player.InputLocked = true;
+        playerRespawn.SetRespawnPoint(ledgeCheckpoint);
+
+        // Whole speech they give you
+        yield return dialogue.Say(Speaker.Sherry, "Look!");
+        cameraFollow.SetTarget(ledgeCamPoint);
+        cameraFollow.SetZoom(7f);
+        yield return dialogue.Say(Speaker.Charlotte, "See that glowing orb? That's nectar!");
+        yield return dialogue.Say(Speaker.Sherry, "It has the power to save our forest!");
+        yield return dialogue.Say(Speaker.Sherry, "Go get it!");
+
+        cameraFollow.SetTarget(player.transform);
+        cameraFollow.ResetZoom();
+        dialogue.Hide();
+        player.InputLocked = false;
+        ledgeWorm.CanAct = true;
+
+        yield return new WaitUntil(() => Vector2.Distance(player.transform.position, nectar.transform.position) < nectarCloseDistance);
+        player.InputLocked = true;
+        ledgeWorm.Frozen = true;
+        yield return dialogue.Say(Speaker.Sherry, "That's the nectar, Appy! It has healing properties.");
+        yield return dialogue.Say(Speaker.Charlotte, "With it, we can heal everyone in the outpost and heal the forest!");
+        yield return dialogue.Say(Speaker.Charlotte, "Go on, grab it! And no, you can't eat it.");
+        dialogue.Hide();
+        player.InputLocked = false; 
+
+        // Next, the rest of the level and the outpost
     }
 }

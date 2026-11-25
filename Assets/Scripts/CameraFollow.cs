@@ -13,21 +13,43 @@ public class CameraFollow : MonoBehaviour
     float defaultSize;
     float targetSize;
 
+    Vector3 basePosition;
+    float shakeTimeLeft;
+    float shakeDuration;
+    float shakeMagnitude;
+
     void Awake()
     {
         cam = GetComponent<Camera>();
         defaultSize = cam.orthographicSize;
         targetSize = defaultSize;
+        basePosition = transform.position;
     }
 
     public void SetTarget(Transform newTarget) => target = newTarget;
-    public void SetZoom(float size) => targetSize = size; 
-    public void ResetZoom() => targetSize = defaultSize; 
+    public void SetZoom(float size) => targetSize = size;
+    public void ResetZoom() => targetSize = defaultSize;
+
+    public void Shake(float duration, float magnitude)
+    {
+        shakeDuration = duration;
+        shakeTimeLeft = duration;
+        shakeMagnitude = magnitude;
+    }
 
     void LateUpdate()
     {
         if (target == null) return;
-        transform.position = Vector3.Lerp(transform.position, target.position + offset, smoothing * Time.deltaTime);
+        basePosition = Vector3.Lerp(basePosition, target.position + offset, smoothing * Time.deltaTime);
         cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, targetSize, smoothing * Time.deltaTime);
+        Vector3 shake = Vector3.zero;
+        if (shakeTimeLeft > 0f)
+        {
+            shakeTimeLeft -= Time.deltaTime;
+            float strength = shakeMagnitude * (shakeTimeLeft / shakeDuration );
+            shake = (Vector3)(Random.insideUnitCircle * strength);
+        }
+
+        transform.position = basePosition + shake;
     }
 }    

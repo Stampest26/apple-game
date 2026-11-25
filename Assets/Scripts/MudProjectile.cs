@@ -18,13 +18,15 @@ public class MudProjectile : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
+        Debug.Log("Mud touched: " + other.name + " (layer " + LayerMask.LayerToName(other.gameObject.layer) + ")");
         // worm worm
         if (other.TryGetComponent(out Worm worm))
         {
             worm.Mud();
             Destroy(gameObject);
         }
-        else if (other.gameObject.layer == LayerMask.NameToLayer("Ground"))
+        else if (other.gameObject.layer == LayerMask.NameToLayer("Ground")
+                && !other.TryGetComponent(out PlatformEffector2D _))
         {
             Destroy(gameObject);
         }

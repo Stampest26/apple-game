@@ -1,10 +1,13 @@
 // This script is in charge of showing the coin counter on screen. Might modify it to show a coin sprite later on instead. 
+// Also later modified to use by the nectar counter
 using TMPro; 
 using UnityEngine;
 
 public class CoinCounter : MonoBehaviour
 {
     [SerializeField] TMP_Text text;
+    [SerializeField] string label = "Coins";
+
     public int Coins { get; private set; }
 
     void Start() => Refresh();
@@ -15,5 +18,5 @@ public class CoinCounter : MonoBehaviour
         Coins += amount;
         Refresh();
     }
-    void Refresh() => text.text = "Coins: " + Coins;
+    void Refresh() => text.text = label + ": " + Coins;
 }
